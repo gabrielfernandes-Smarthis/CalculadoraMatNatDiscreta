@@ -8,14 +8,17 @@ namespace CalculadoraMatNatDiscreta
     public class Calculadora
     {
         private string resposta;
-
         private List<string> operadores;
-
         private string negador;
-
         private List<Proposicao> proposicoes;
+
+
         public List<string> Formula { get; set; }
         public List<string> FormulaAux { get; set; }
+        public PegaProposicao pegaProposicoes { get; set; }
+        public RemoveParentese removeParentese { get; set; }
+        public Calcular calcular { get; set; }
+
         Form1 form1 = new Form1();
         TabelaVerdade tabelaV = new TabelaVerdade();
 
@@ -33,6 +36,27 @@ namespace CalculadoraMatNatDiscreta
 
         }
 
+        public Calculadora(List<string> formula)
+        {
+            this.Formula = formula;
+            this.FormulaAux = formula;
+            this.negador = "~";
+            this.proposicoes = new List<Proposicao>();
+
+            defineOperadores();
+            recolherProposicoes();
+
+            VerificarFBF FBF = new VerificarFBF(Formula, operadores);
+            pegaProposicoes = new PegaProposicao(proposicoes);
+            calcular = new Calcular(operadores);
+            removeParentese = new RemoveParentese(Formula, pegaProposicoes, calcular);
+
+            if (FBF.isFBF())
+            {
+                tabelaVerdade();
+            }
+        }
+
         public Calculadora(List<string> formula, List<bool> valores)
         {
             this.Formula = formula;
@@ -44,7 +68,12 @@ namespace CalculadoraMatNatDiscreta
 
             this.proposicoes = new List<Proposicao>();
 
-            if (isFBF())
+            VerificarFBF FBF = new VerificarFBF(Formula, operadores);
+            pegaProposicoes = new PegaProposicao(proposicoes);
+            calcular = new Calcular(operadores);
+            removeParentese = new RemoveParentese(Formula, pegaProposicoes, calcular);
+
+            if (FBF.isFBF())
             {
                 recolherProposicoes();
                 defineProposicoes(valores);
@@ -66,7 +95,7 @@ namespace CalculadoraMatNatDiscreta
             }
             else
             {
-                throw new ArgumentException("A forma não é bem formulada");
+                form1.Resultado("A forma não é bem formulada");             
             }
 
         }
@@ -94,117 +123,6 @@ namespace CalculadoraMatNatDiscreta
             operadores.Add("→");
             operadores.Add("↔");
 
-        }
-
-        //Checa se a fórmula é bem formulada(FBF) ou não
-        private bool isFBF()
-        {
-            try
-            {
-                for (int i = 0; i < Formula.Count; i++)
-                {
-                    if (char.IsDigit(Formula[i].ToCharArray()[0]))
-                    {
-                        throw new ArgumentException();
-                    }
-                }
-            }
-            catch (ArgumentException e) { return false; }
-
-            int cnt = 0; //Contador de parenteses
-
-            //Tratamento de excessão para as futuras checagens que podem acatar em IndexOutOfBounds
-            for (int i = 0; i < this.Formula.Count; i++)
-            {
-                //Caso a diferença de parênteses seja negativa é evidente que a fórmula não é uma FBF
-                if (cnt < 0) return false;
-                if (cnt >= 0)
-                {
-                    if (this.operadores.Contains(this.Formula[i]))
-                    {
-                        try
-                        {
-                            //Caso haja 2 operadores em sequência é evidente que a fórmula não é uma FBF
-                            if (this.operadores.Contains(this.Formula[i + 1])) return false;
-                        }
-                        //Tratamento de excessão IndexOutOfBounds, caso entre é evidente que não é uma FBF
-                        catch (ArgumentOutOfRangeException e)
-                        {
-                            return false;
-                        }
-
-                    }
-                    if (Char.IsLetter(this.Formula[i].ToCharArray()[0]))
-                    {
-                        try
-                        {
-                            /*Caso haja 2 proposições em sequência
-                              sem nenhum operador entre ela é
-                              evidente que a fórmula não é uma FBF*/
-                            if (Char.IsLetter(this.Formula[i + 1].ToCharArray()[0]) || this.Formula[i + 1].Equals(this.negador))
-                            {
-                                return false;
-                            }
-
-                        }
-                        //Tratamento de excessão IndexOutOfBounds, caso entre é evidente que é uma FBF
-                        catch (ArgumentOutOfRangeException e)
-                        {
-                            return true;
-                        }
-                    }
-                    if (this.Formula[i].Equals(this.negador))
-                    {
-
-                        try
-                        {
-                            //Caso haja uma não proposição seguida de uma negação é evidente que a fórmula não é uma FBF
-                            if (!Char.IsLetter(this.Formula[i + 1].ToCharArray()[0]) && !Formula[i + 1].Equals("(")) return false;
-                        }
-                        //Tratamento de excessão IndexOutOfBounds, caso entre é evidente que é uma FBF
-                        catch (ArgumentOutOfRangeException e)
-                        {
-                            return false;
-                        }
-                    }
-                    //Caso um parêntese seja aberto é somado 1 ao contador de parênteses
-                    if (this.Formula[i].Equals("("))
-                    {
-                        cnt++;
-                        try
-                        {
-                            if (!Char.IsLetter(this.Formula[i + 1].ToCharArray()[0]) && !Formula[i + 1].Equals("("))
-                            {
-                                if (!this.Formula[i + 1].Equals(this.negador)) return false;
-                            }
-
-                        }
-                        //Tratamento de excessão IndexOutOfBounds, caso entre é evidente que não é uma FBF
-                        catch (ArgumentOutOfRangeException e)
-                        {
-                            return false;
-                        }
-
-                    }
-                    //Caso um parêntese seja fechado é subtraido 1 ao contador de parêntes
-                    if (this.Formula[i].Equals(")"))
-                    {
-                        cnt--;
-                        try
-                        {
-                            if (!Char.IsLetter(this.Formula[i - 1].ToCharArray()[0]) && !Formula[i - 1].Equals(")")) return false;
-                        }
-                        //Tratamento de excessão IndexOutOfBounds, caso entre é evidente que não é uma FBF
-                        catch (ArgumentOutOfRangeException e) { }
-                    }
-                }
-            }
-            /*Caso não haja nenhum erro nas checagens anteriores e a diferença de parêntes 
-             * seja igual a 0  é evidente que a fórmula é uma FBF*/
-            if (cnt == 0) return true;
-
-            //Caso o contrário é evidente que a fórmula não é uma FBF
-            return false;
         }
 
         private void recolherProposicoes()
@@ -247,7 +165,7 @@ namespace CalculadoraMatNatDiscreta
             {
                 if (Formula[ii].Equals("("))
                 {
-                    executaParenteses();
+                    this.Formula = removeParentese.executaParenteses();
                     ii = 0;
                 }
                 else
@@ -255,7 +173,7 @@ namespace CalculadoraMatNatDiscreta
                     ii++;
                 }
             }
-
+            
             List<string> operadores = new List<string>();
             List<Proposicao> proposicoes = new List<Proposicao>();
 
@@ -272,7 +190,7 @@ namespace CalculadoraMatNatDiscreta
                     else
                     {
                         n = new Proposicao(Formula[i + 1].ToCharArray()[0]);
-                        n.setValor(!getProposicao(Formula[i + 1].ToCharArray()[0]).getValor());
+                        n.setValor(!pegaProposicoes.getProposicao(Formula[i + 1].ToCharArray()[0]).getValor());
                     }
                     proposicoes.Add(n);
                     Formula.RemoveAt(i);
@@ -285,7 +203,7 @@ namespace CalculadoraMatNatDiscreta
                     }
                     else
                     {
-                        proposicoes.Add(getProposicao(Formula[i].ToCharArray()[0]));
+                        proposicoes.Add(pegaProposicoes.getProposicao(Formula[i].ToCharArray()[0]));
                     }
                 }
                 else
@@ -296,7 +214,7 @@ namespace CalculadoraMatNatDiscreta
             bool resultado;
             try
             {
-                resultado = calcula(proposicoes[0].getValor(), operadores[0].ToCharArray()[0], proposicoes[1].getValor());
+                resultado = calcular.calcula(proposicoes[0].getValor(), operadores[0].ToCharArray()[0], proposicoes[1].getValor());
             }
             catch (ArgumentOutOfRangeException e)
             {
@@ -307,153 +225,11 @@ namespace CalculadoraMatNatDiscreta
             {
                 try
                 {
-                    resultado = calcula(resultado, operadores[i].ToCharArray()[0], proposicoes[i + 1].getValor());
+                    resultado = calcular.calcula(resultado, operadores[i].ToCharArray()[0], proposicoes[i + 1].getValor());
                 }
                 catch (ArgumentOutOfRangeException e) { }
             }
             return resultado;
-        }
-
-        public void executaParenteses()
-        {
-            int comecoParentese = 0;
-            int finalParentese = 0;
-
-            List<string> parentese = new List<string>();
-            List<Proposicao> propParentese = new List<Proposicao>();
-            List<string> opParentese = new List<string>();
-
-            int size = Formula.Count;
-
-            try
-            {
-                for (int i = 0; i < size; i++)
-                {
-                    if (Formula[i].Equals("(")) comecoParentese = i;
-                }
-
-                finalParentese = comecoParentese;
-
-                while (!this.Formula[finalParentese].Equals(")")) { finalParentese++; }
-
-                for (int i = comecoParentese; i < finalParentese - 1; i++)
-                {
-                    parentese.Add(this.Formula[i + 1]);
-                }
-
-                int controleNegacao = 0;
-
-                for (int i = 0; i < parentese.Count; i++)
-                {
-                    controleNegacao = i;
-
-                    if (parentese[i].Equals("~"))
-                    {
-                        Proposicao n;
-                        if (parentese[i + 1].Length > 1)
-                        {
-                            n = new Proposicao(parentese[i + 1].ToCharArray()[0]);
-                        }
-                        else
-                        {
-                            n = new Proposicao(parentese[i + 1].ToCharArray()[0]);
-                            n.setValor(!getProposicao(parentese[i + 1].ToCharArray()[0]).getValor());
-                        }
-
-                        propParentese.Add(n);
-                        parentese.RemoveAt(i);
-                    }
-                    else if (Char.IsLetter(parentese[i].ToCharArray()[0]))
-                    {
-                        if (parentese[i].Length > 1)
-                        {
-                            propParentese.Add(new Proposicao(parentese[i].ToCharArray()[0], bool.Parse(parentese[i])));
-                        }
-                        else
-                        {
-                            propParentese.Add(getProposicao(parentese[i].ToCharArray()[0]));
-                        }
-                    }
-                    else
-                    {
-                        opParentese.Add(parentese[i]);
-                    }
-                }
-                for (int i = comecoParentese; i <= finalParentese; i++)
-                {
-                    this.Formula.RemoveAt(comecoParentese);
-                }
-
-                bool resultado;
-                try
-                {
-                    resultado = calcula(propParentese[0].getValor(), opParentese[0].ToCharArray()[0], propParentese[1].getValor());
-                }
-                catch (ArgumentOutOfRangeException e)
-                {
-                    resultado = propParentese[0].getValor();
-                }
-
-                for (int i = 1; i < parentese.Count - 1; i++)
-                {
-                    try
-                    {
-                        resultado = calcula(resultado, opParentese[i].ToCharArray()[0], propParentese[i + 1].getValor());
-                    }
-                    catch (ArgumentOutOfRangeException e) { }
-                }
-
-                if (resultado)
-                {
-                    this.Formula.Insert(comecoParentese, "true");
-                }
-                else
-                {
-                    this.Formula.Insert(comecoParentese, "false");
-                }
-            }
-            catch (ArgumentOutOfRangeException e) { }
-        }
-
-        private Proposicao getProposicao(Char nome)
-        {
-            foreach (Proposicao i in this.proposicoes)
-            {
-                if (i.getNome().Equals(nome)) return i;
-            }
-            return null;
-        }
-
-        private bool calcula(bool a, Char op, bool b)
-        {
-            if (op.Equals(this.operadores[0].ToCharArray()[0]))
-            {
-                if (a && b) return true;
-
-                return false;
-            }
-
-            else if (op.Equals(this.operadores[1].ToCharArray()[0]))
-            {
-                if (a || b) return true;
-
-                return false;
-            }
-
-            else if (op.Equals(this.operadores[2].ToCharArray()[0]))
-            {
-                if (a && !b) return false;
-
-                return true;
-            }
-
-            else if (op.Equals(this.operadores[3].ToCharArray()[0]))
-            {
-                if (a != b) return false;
-
-                return true;
-            }
-            return false;
         }
 
         public String tabelaVerdade()

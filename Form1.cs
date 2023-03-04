@@ -169,8 +169,28 @@ namespace CalculadoraMatNatDiscreta
                 ValorE.Text,
                 ValorF.Text,
             };
-            List<bool> valoresBool = transformarBool(valoresPreposicoes);
-            Calculadora calculadora = new Calculadora(Formula, valoresBool);
+            bool vazia = false;
+            int aux = 0;
+            for (int i = 0; i < valoresPreposicoes.Count; i++)
+            {
+                if (valoresPreposicoes[i] == "")
+                {
+                    aux++;
+                    if (aux == 6)
+                    {
+                        vazia = true;
+                    }
+                }
+            }
+            if (vazia)
+            {
+                Calculadora tabelaverdade = new Calculadora(Formula);
+            }
+            else 
+            { 
+                List<bool> valoresBool = transformarBool(valoresPreposicoes);
+                Calculadora calculadora = new Calculadora(Formula, valoresBool);
+            }
         }
 
         public void Resultado(string mensagem)

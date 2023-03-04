@@ -10,11 +10,13 @@ public class VerificarFBF
 {
     public List<string> Formula { get; set; }
     public List<string> operadores { get; set; }
+    public string negador { get; set; }
 
     public VerificarFBF(List<string> formula, List<string> Operadores)
     {
         this.Formula = formula;
         this.operadores = Operadores;
+        this.negador = "~";
     }
 
     public bool isFBF()
